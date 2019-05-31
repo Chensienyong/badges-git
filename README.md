@@ -1,5 +1,8 @@
 # CodecovExample
 
+![Build Status](https://travis-ci.org/Chensienyong/badges-git.svg?branch=master)
+![codecov](https://codecov.io/gh/Chensienyong/badges-git/branch/master/graph/badge.svg)
+
 **TODO: Add description**
 
 ## Installation
