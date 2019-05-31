@@ -10,7 +10,6 @@ defmodule ExCoveralls do
   alias ExCoveralls.Travis
   alias ExCoveralls.Circle
   alias ExCoveralls.Semaphore
-  alias ExCoveralls.Drone
   alias ExCoveralls.Local
   alias ExCoveralls.Html
   alias ExCoveralls.Json
@@ -19,7 +18,6 @@ defmodule ExCoveralls do
   @type_travis      "travis"
   @type_circle      "circle"
   @type_semaphore   "semaphore"
-  @type_drone       "drone"
   @type_local       "local"
   @type_html        "html"
   @type_json        "json"
@@ -36,7 +34,7 @@ defmodule ExCoveralls do
   end
 
   def execute(options, compile_path) do
-    stats = Cover.modules() |> Stats.report() |> Enum.map(&Enum.into(&1, %{}))
+    stats = Stats.report(Cover.modules)
 
     if options[:umbrella] do
       store_stats(stats, options, compile_path)
@@ -71,13 +69,6 @@ defmodule ExCoveralls do
   """
   def analyze(stats, @type_semaphore, options) do
     Semaphore.execute(stats, options)
-  end
-
-  @doc """
-  Logic for posting from drone-ci server
-  """
-  def analyze(stats, @type_drone, options) do
-    Drone.execute(stats, options)
   end
 
   @doc """

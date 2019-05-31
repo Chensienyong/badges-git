@@ -14,7 +14,7 @@ defmodule ExCoveralls.Html.View do
 
     defp get_template_path() do
       options = ExCoveralls.Settings.get_coverage_options
-      case Map.fetch(options, "template_path") do
+      case Dict.fetch(options, "template_path") do
         {:ok, path} -> path
         _ -> Path.expand("excoveralls/lib/templates/html/htmlcov/", Mix.Project.deps_path())
       end
@@ -23,9 +23,7 @@ defmodule ExCoveralls.Html.View do
 
   @template "coverage.html.eex"
 
-  def render(assigns \\ []) do
-    EEx.eval_file(PathHelper.template_path(@template), assigns: assigns)
-  end
+  EEx.function_from_file(:def, :render, PathHelper.template_path(@template), [:assigns])
 
   def partial(template, assigns \\ []) do
     EEx.eval_file(PathHelper.template_path(template), assigns: assigns)
@@ -35,9 +33,7 @@ defmodule ExCoveralls.Html.View do
     Safe.html_escape(data)
   end
 
-  def coverage_class(percent, sloc \\ nil)
-  def coverage_class(_percent, 0), do: "none"
-  def coverage_class(percent, _) do
+  def coverage_class(percent) do
     cond do
       percent >= 75 -> "high"
       percent >= 50 -> "medium"

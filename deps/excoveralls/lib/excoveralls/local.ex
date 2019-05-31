@@ -15,7 +15,7 @@ defmodule ExCoveralls.Local do
   Provides an entry point for the module.
   """
   def execute(stats, options \\ []) do
-    print_summary(stats, options)
+    print_summary(stats)
 
     if options[:detail] == true do
       source(stats, options[:filter]) |> IO.puts
@@ -42,23 +42,18 @@ defmodule ExCoveralls.Local do
   @doc """
   Prints summary statistics for given coverage.
   """
-  def print_summary(stats, options \\ []) do
-    enabled = ExCoveralls.Settings.get_print_summary
-
-    if enabled do
-      file_width = ExCoveralls.Settings.get_file_col_width
-      IO.puts "----------------"
-      IO.puts print_string("~-6s ~-#{file_width}s ~8s ~8s ~8s", ["COV", "FILE", "LINES", "RELEVANT", "MISSED"])
-      coverage(stats, options) |> IO.puts
-      IO.puts "----------------"
-    end
+  def print_summary(stats) do
+    IO.puts "----------------"
+    IO.puts print_string("~-6s ~-40s ~8s ~8s ~8s", ["COV", "FILE", "LINES", "RELEVANT", "MISSED"])
+    coverage(stats) |> IO.puts
+    IO.puts "----------------"
   end
 
   defp format_source(stat) do
     "\n\e[33m--------#{stat[:name]}--------\e[m\n" <> colorize(stat)
   end
 
-  defp colorize(%{name: _name, source: source, coverage: coverage}) do
+  defp colorize([{:name, _name}, {:source, source}, {:coverage, coverage}]) do
     lines = String.split(source, "\n")
     Enum.zip(lines, coverage)
     |> Enum.map(&do_colorize/1)
@@ -76,56 +71,10 @@ defmodule ExCoveralls.Local do
   @doc """
   Format the source coverage stats into string.
   """
-  def coverage(stats, options \\ []) do
+  def coverage(stats) do
+    stats = Enum.sort(stats, fn(x, y) -> x[:name] <= y[:name] end)
     count_info = Enum.map(stats, fn(stat) -> [stat, calculate_count(stat[:coverage])] end)
-    count_info = sort(count_info, options)
     Enum.join(format_body(count_info), "\n") <> "\n" <> format_total(count_info)
-  end
-
-  defp sort(count_info, options) do
-    if options[:sort] do
-      sort_order = parse_sort_options(options)
-
-      flattened =
-        Enum.map(count_info, fn original ->
-          [stat, count] = original
-          %{
-            "cov" => get_coverage(count),
-            "file" => stat[:name],
-            "lines" => count.lines,
-            "relevant" => count.relevant,
-            "missed" => count.relevant - count.covered,
-            :_original => original
-          }
-        end)
-
-      sorted =
-        Enum.reduce(sort_order, flattened, fn {key, comparator}, acc ->
-          Enum.sort(acc, fn(x, y) ->
-            args = [x[key], y[key]]
-            apply(Kernel, comparator, args)
-          end)
-        end)
-
-      Enum.map(sorted, fn flattened -> flattened[:_original] end)
-    else
-      Enum.sort(count_info, fn([x, _], [y, _]) -> x[:name] <= y[:name] end)
-    end
-  end
-
-  defp parse_sort_options(options) do
-    sort_order =
-      options[:sort]
-      |> String.split(",")
-      |> Enum.reverse()
-
-    Enum.map(sort_order, fn sort_chunk ->
-      case String.split(sort_chunk, ":") do
-        [key, "asc"] -> {key, :<=}
-        [key, "desc"] -> {key, :>=}
-        [key] -> {key, :>=}
-      end
-    end)
   end
 
   defp format_body(info) do
@@ -134,8 +83,7 @@ defmodule ExCoveralls.Local do
 
   defp format_info([stat, count]) do
     coverage = get_coverage(count)
-    file_width = ExCoveralls.Settings.get_file_col_width
-    print_string("~5.1f% ~-#{file_width}s ~8w ~8w ~8w",
+    print_string("~5.1f% ~-40s ~8w ~8w ~8w",
       [coverage, stat[:name], count.lines, count.relevant, count.relevant - count.covered])
   end
 
@@ -163,9 +111,9 @@ defmodule ExCoveralls.Local do
 
   defp default_coverage_value do
     options = ExCoveralls.Settings.get_coverage_options
-    case Map.fetch(options, "treat_no_relevant_lines_as_covered") do
-      {:ok, false} -> 0.0
-      _            -> 100.0
+    case Dict.fetch(options, "treat_no_relevant_lines_as_covered") do
+      {:ok, true} -> 100.0
+      _           -> 0.0
     end
   end
 
