@@ -1,4 +1,4 @@
-defmodule Example.Mixfile do
+defmodule CodecovExample.MixProject do
   use Mix.Project
 
   def project do
