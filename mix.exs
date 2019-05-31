@@ -8,8 +8,12 @@ defmodule CodecovExample.MixProject do
       elixir: "~> 1.8",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
+      preferred_cli_env: [
+        "coveralls": :test,
+        "coveralls.html": :test,
+        "coveralls.json": :test,
+      ],
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [coveralls: :test]
     ]
   end
 
